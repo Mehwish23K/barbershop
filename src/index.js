@@ -13,23 +13,28 @@ import Team from './pages/Team';
 import Reservations from './pages/Reservations';
 import Footer from './components/Footer';
 import TeamMember from './pages/TeamMember';
+import AdminPanel from './pages/AdminPanel';
+import { SocketProvider } from './context/SocketContext';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <BrowserRouter>
-  <Nav/>
-  <Routes>
-    <Route path='/' Component={App}></Route>
-    <Route path='/services' Component={Services}></Route>
-    <Route path='/contact' Component={Contact}></Route>
-    <Route path='/about' Component={About}></Route>
-    <Route path='/team' Component={Team}></Route>
-    <Route path='/team/:id' Component={TeamMember}></Route>
-    <Route path='/reservations' Component={Reservations}></Route>
-    <Route path='*' Component={NotFound}></Route>
-  </Routes>
-  <Footer/>
-  </BrowserRouter>
+  <SocketProvider>
+    <BrowserRouter>
+    <Nav/>
+    <Routes>
+      <Route path='/' Component={App}></Route>
+      <Route path='/services' Component={Services}></Route>
+      <Route path='/contact' Component={Contact}></Route>
+      <Route path='/about' Component={About}></Route>
+      <Route path='/team' Component={Team}></Route>
+      <Route path='/team/:id' Component={TeamMember}></Route>
+      <Route path='/reservations' Component={Reservations}></Route>
+      <Route path='/admin' Component={AdminPanel}></Route>
+      <Route path='*' Component={NotFound}></Route>
+    </Routes>
+    <Footer/>
+    </BrowserRouter>
+  </SocketProvider>
 );
 
 // If you want to start measuring performance in your app, pass a function

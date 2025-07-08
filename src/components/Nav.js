@@ -51,6 +51,11 @@ function Nav() {
       <Link to='/team'>Our Team</Link>
       <Link to='/contact'>Contact</Link>
       </ul>
+      <div className="hidden md:block">
+        <Link to='/admin' className="text-sm px-3 py-1 bg-red-800 rounded hover:bg-red-700">
+          Admin
+        </Link>
+      </div>
       <button style={scrollDir === 'scrolling up' ? {visibility: 'visible'} : {visibility: 'hidden'}} onClick={() => {setMobileMenuActive(!mobileMenuActive); setMobileMenuShowing(true)}}>
       <div className="hb w-8 h-8 md:hidden">
         {mobileMenuShowing ? 

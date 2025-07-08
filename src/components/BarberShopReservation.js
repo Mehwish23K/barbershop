@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import ServicesSelect from './ServicesSelect';
+import { appointmentAPI } from '../services/api';
 
 // Custom select component
 
@@ -9,7 +10,9 @@ function BarberShopReservation() {
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
   const [selectedService, setSelectedService] = useState('Signature Cut & Style');
-  const [message, setMessage] = useState('')
+  const [email, setEmail] = useState('');
+  const [message, setMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const [datePicked, setDatePicked] = useState([])
 
   useEffect(() => {
@@ -50,11 +53,43 @@ function BarberShopReservation() {
     currentTime.setMinutes(currentTime.getMinutes() + 30);
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    if(selectedDate && selectedService && selectedStylist && selectedTime)
-    setMessage(`Successfully Booked Reservation with ${selectedStylist} for ${selectedService} on ${selectedDate} at ${selectedTime}. We will be reaching out to you shortly!`);
-    // You can implement your booking logic here
+    
+    if (!selectedDate || !selectedService || !selectedStylist || !selectedTime || !email) {
+      setMessage('Please fill in all fields');
+      return;
+    }
+    
+    setIsLoading(true);
+    setMessage('');
+    
+    try {
+      const appointmentData = {
+        stylist: selectedStylist,
+        service: selectedService,
+        date: selectedDate,
+        time: selectedTime,
+        email: email
+      };
+      
+      const response = await appointmentAPI.create(appointmentData);
+      
+      if (response.data.success) {
+        setMessage(`Successfully Booked Reservation with ${selectedStylist} for ${selectedService} on ${selectedDate} at ${selectedTime}. We will be reaching out to you shortly!`);
+        // Clear form
+        setSelectedDate('');
+        setSelectedTime('');
+        setEmail('');
+      } else {
+        setMessage('Failed to book appointment. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error booking appointment:', error);
+      setMessage('Failed to book appointment. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
   function CustomSelect({ options, value, onChange }) {
     return (
@@ -101,9 +136,21 @@ function BarberShopReservation() {
         {message ? <p className='max-w-xl text-center py-4'>{message}</p> : null}
         <div className='flex flex-col gap-2 w-80 py-4 justify-between'>
           <div className='font-bold'>Email: </div>
-          <input type='email' className='bg-neutral-300 border border-red-800 px-3 placeholder:text-red-800'>
-          </input>
-        <button className='bg-red-800 nav text-neutral-300 px-4 py-2' type="submit">Book Appointment</button>
+          <input 
+            type='email' 
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className='bg-neutral-300 border border-red-800 px-3 placeholder:text-red-800'
+            placeholder="your.email@example.com"
+          />
+        <button 
+          className='bg-red-800 nav text-neutral-300 px-4 py-2 disabled:opacity-50' 
+          type="submit"
+          disabled={isLoading}
+        >
+          {isLoading ? 'Booking...' : 'Book Appointment'}
+        </button>
         </div>
       </form>
       
