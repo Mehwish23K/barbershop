@@ -16,7 +16,10 @@ import TeamMember from './pages/TeamMember';
 import AdminPanel from './pages/AdminPanel';
 import { SocketProvider } from './context/SocketContext';
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
+const root = ReactDOM.createRoot(
+  document.getElementById('root') as HTMLElement
+);
+
 root.render(
   <SocketProvider>
     <BrowserRouter>

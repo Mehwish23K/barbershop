@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { appointmentAPI } from '../services/api';
 import { useSocket } from '../context/SocketContext';
+import { Appointment, AppointmentStatus, StatsResponse } from '../types';
 
-function AdminPanel() {
-  const [appointments, setAppointments] = useState([]);
-  const [stats, setStats] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all');
+const AdminPanel: React.FC = () => {
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [stats, setStats] = useState<StatsResponse>({ total: 0, pending: 0, confirmed: 0, completed: 0 });
+  const [loading, setLoading] = useState<boolean>(true);
+  const [filter, setFilter] = useState<AppointmentStatus | 'all'>('all');
   const { socket } = useSocket();
 
   useEffect(() => {
@@ -18,23 +19,23 @@ function AdminPanel() {
       socket.emit('join_admin');
       
       // Listen for real-time updates
-      socket.on('new_appointment', (appointment) => {
+      socket.on('new_appointment', (appointment: Appointment) => {
         setAppointments(prev => [appointment, ...prev]);
         loadStats(); // Refresh stats
       });
       
-      socket.on('appointment_updated', ({ id, status }) => {
+      socket.on('appointment_updated', ({ id, status }: { id: number; status: AppointmentStatus }) => {
         setAppointments(prev => 
           prev.map(apt => 
-            apt.id === parseInt(id) ? { ...apt, status } : apt
+            apt.id === id ? { ...apt, status } : apt
           )
         );
         loadStats(); // Refresh stats
       });
       
-      socket.on('appointment_deleted', ({ id }) => {
+      socket.on('appointment_deleted', ({ id }: { id: number }) => {
         setAppointments(prev => 
-          prev.filter(apt => apt.id !== parseInt(id))
+          prev.filter(apt => apt.id !== id)
         );
         loadStats(); // Refresh stats
       });
@@ -49,7 +50,7 @@ function AdminPanel() {
     };
   }, [socket]);
 
-  const loadAppointments = async () => {
+  const loadAppointments = async (): Promise<void> => {
     try {
       const response = await appointmentAPI.getAll();
       setAppointments(response.data.appointments);
@@ -58,7 +59,7 @@ function AdminPanel() {
     }
   };
 
-  const loadStats = async () => {
+  const loadStats = async (): Promise<void> => {
     try {
       const response = await appointmentAPI.getStats();
       setStats(response.data);
@@ -69,7 +70,7 @@ function AdminPanel() {
     }
   };
 
-  const updateAppointmentStatus = async (id, status) => {
+  const updateAppointmentStatus = async (id: number, status: AppointmentStatus): Promise<void> => {
     try {
       await appointmentAPI.updateStatus(id, status);
     } catch (error) {
@@ -77,7 +78,7 @@ function AdminPanel() {
     }
   };
 
-  const deleteAppointment = async (id) => {
+  const deleteAppointment = async (id: number): Promise<void> => {
     if (window.confirm('Are you sure you want to delete this appointment?')) {
       try {
         await appointmentAPI.delete(id);
@@ -92,7 +93,7 @@ function AdminPanel() {
     return apt.status === filter;
   });
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
       weekday: 'long', 
@@ -102,7 +103,7 @@ function AdminPanel() {
     });
   };
 
-  const getStatusColor = (status) => {
+  const getStatusColor = (status: AppointmentStatus): string => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
       case 'confirmed': return 'bg-green-100 text-green-800';
@@ -111,6 +112,8 @@ function AdminPanel() {
       default: return 'bg-gray-100 text-gray-800';
     }
   };
+
+  const filterOptions: (AppointmentStatus | 'all')[] = ['all', 'pending', 'confirmed', 'completed', 'cancelled'];
 
   if (loading) {
     return (
@@ -152,7 +155,7 @@ function AdminPanel() {
         {/* Filter Buttons */}
         <div className="mb-6">
           <div className="flex flex-wrap gap-2">
-            {['all', 'pending', 'confirmed', 'completed', 'cancelled'].map(status => (
+            {filterOptions.map(status => (
               <button
                 key={status}
                 onClick={() => setFilter(status)}
@@ -279,6 +282,6 @@ function AdminPanel() {
       </div>
     </div>
   );
-}
+};
 
 export default AdminPanel;

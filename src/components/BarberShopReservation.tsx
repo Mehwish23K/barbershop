@@ -1,49 +1,54 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, ChangeEvent, FormEvent } from 'react';
 import ServicesSelect from './ServicesSelect';
 import { appointmentAPI } from '../services/api';
+import { CreateAppointmentData } from '../types';
 
-// Custom select component
+interface CustomSelectProps {
+  options: string[];
+  value: string;
+  onChange: (value: string) => void;
+}
 
-
-function BarberShopReservation() {
-  const [selectedStylist, setSelectedStylist] = useState('Sierra');
-  const [selectedDate, setSelectedDate] = useState('');
-  const [selectedTime, setSelectedTime] = useState('');
-  const [selectedService, setSelectedService] = useState('Signature Cut & Style');
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [datePicked, setDatePicked] = useState([])
+function BarberShopReservation(): JSX.Element {
+  const [selectedStylist, setSelectedStylist] = useState<string>('Sierra');
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [selectedTime, setSelectedTime] = useState<string>('');
+  const [selectedService, setSelectedService] = useState<string>('Signature Cut & Style');
+  const [email, setEmail] = useState<string>('');
+  const [message, setMessage] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [datePicked, setDatePicked] = useState<number[]>([]);
 
   useEffect(() => {
-    setDatePicked([])
+    setDatePicked([]);
     for(let i = 0; i < 20; i++) {
       if(Math.floor(Math.random() * 2) === 1)  {
-        setDatePicked(prev => prev.concat(i))
+        setDatePicked(prev => prev.concat(i));
       }
     }
-  },[selectedDate])
+  },[selectedDate]);
 
-  const handleStylistChange = (stylist) => {
+  const handleStylistChange = (stylist: string): void => {
     setSelectedStylist(stylist);
   };
 
-  const handleDateChange = (event) => {
+  const handleDateChange = (event: ChangeEvent<HTMLInputElement>): void => {
     setSelectedDate(event.target.value);
   };
 
-  const handleTimeChange = (time) => {
+  const handleTimeChange = (time: string): void => {
     setSelectedTime(time);
   };
-  let newdate = null
-  let dateObj = new Date();
-  let month = dateObj.getUTCMonth() + 1; //months from 1-12
-  let day = dateObj.getUTCDate();
-  let year = dateObj.getUTCFullYear();
+
+  let newdate: string;
+  const dateObj = new Date();
+  const month = dateObj.getUTCMonth() + 1; //months from 1-12
+  const day = dateObj.getUTCDate();
+  const year = dateObj.getUTCFullYear();
   newdate = year + "-" + month + "-" + day;
 
   // Generate time slots from 8 AM to 6 PM with 30-minute intervals
-  const timeSlots = [];
+  const timeSlots: string[] = [];
   let currentTime = new Date('2023-01-01T08:00:00');
   const endTime = new Date('2023-01-01T18:00:00');
 
@@ -53,7 +58,7 @@ function BarberShopReservation() {
     currentTime.setMinutes(currentTime.getMinutes() + 30);
   }
 
-  const handleSubmit = async (event) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
     event.preventDefault();
     
     if (!selectedDate || !selectedService || !selectedStylist || !selectedTime || !email) {
@@ -65,7 +70,7 @@ function BarberShopReservation() {
     setMessage('');
     
     try {
-      const appointmentData = {
+      const appointmentData: CreateAppointmentData = {
         stylist: selectedStylist,
         service: selectedService,
         date: selectedDate,
@@ -91,13 +96,13 @@ function BarberShopReservation() {
       setIsLoading(false);
     }
   };
-  function CustomSelect({ options, value, onChange }) {
+
+  function CustomSelect({ options, value, onChange }: CustomSelectProps): JSX.Element {
     return (
       <div className="w-96 flex flex-wrap gap-2 justify-center text-xl nav">
         {options.map((option, index) => (
           <button
-            
-            disabled={ datePicked.includes(index) ? true : false}
+            disabled={datePicked.includes(index)}
             key={option}
             className={`custom-option ${value === option ? 'bg-red-950 bg-opacity-30 p-4 w-24 flex-grow' : 'bg-red-950 bg-opacity-10 p-4 w-24 flex-grow'}`}
             onClick={() => onChange(option)}
@@ -116,7 +121,12 @@ function BarberShopReservation() {
       <div className='flex py-4 flex-col gap-2 px-3'>
       <div className='flex flex-col gap-2 items-center'>
           <div className='font-bold'>Stylist & Service:</div>
-          <select required={true} value={selectedStylist} onChange={(e) => handleStylistChange(e.target.value)} className='border w-80 border-red-800 bg-neutral-300'>
+          <select 
+            required 
+            value={selectedStylist} 
+            onChange={(e) => handleStylistChange(e.target.value)} 
+            className='border w-80 border-red-800 bg-neutral-300'
+          >
             <option value="Sierra">Sierra</option>
             <option value="Billy">Billy</option>
             <option value="Jonny">Jonny</option>
@@ -125,9 +135,20 @@ function BarberShopReservation() {
         </div>
         <div className='flex gap-2 flex-col items-center'>
           <div className="label text-left font-bold">Date:</div>
-          <input min={newdate} className='bg-neutral-300 border w-80 border-red-800' required={true} type="date" value={selectedDate} onChange={handleDateChange} />
+          <input 
+            min={newdate} 
+            className='bg-neutral-300 border w-80 border-red-800' 
+            required 
+            type="date" 
+            value={selectedDate} 
+            onChange={handleDateChange} 
+          />
           <div className="label font-bold">Time Slot:</div>
-          <input value={selectedTime || 'Not Selected'} className='bg-neutral-300 text-center' disabled={true}></input>
+          <input 
+            value={selectedTime || 'Not Selected'} 
+            className='bg-neutral-300 text-center' 
+            disabled={true}
+          />
         </div>
         </div>
         <div className="select-container">

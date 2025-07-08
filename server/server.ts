@@ -1,13 +1,44 @@
-const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
-const cors = require('cors');
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+import express, { Request, Response } from 'express';
+import http from 'http';
+import { Server as SocketIOServer } from 'socket.io';
+import cors from 'cors';
+import sqlite3 from 'sqlite3';
+import path from 'path';
+
+// Types
+interface Appointment {
+  id: number;
+  stylist: string;
+  service: string;
+  date: string;
+  time: string;
+  email: string;
+  created_at: string;
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+}
+
+interface CreateAppointmentRequest {
+  stylist: string;
+  service: string;
+  date: string;
+  time: string;
+  email: string;
+}
+
+interface UpdateAppointmentRequest {
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+}
+
+interface SocketEvents {
+  join_admin: () => void;
+  new_appointment: (appointment: Appointment) => void;
+  appointment_updated: (data: { id: number; status: string }) => void;
+  appointment_deleted: (data: { id: number }) => void;
+}
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server, {
+const io = new SocketIOServer(server, {
   cors: {
     origin: "http://localhost:3000",
     methods: ["GET", "POST"]
@@ -54,8 +85,8 @@ io.on('connection', (socket) => {
 // API Routes
 
 // Get all appointments
-app.get('/api/appointments', (req, res) => {
-  db.all('SELECT * FROM appointments ORDER BY created_at DESC', (err, rows) => {
+app.get('/api/appointments', (req: Request, res: Response) => {
+  db.all('SELECT * FROM appointments ORDER BY created_at DESC', (err: Error | null, rows: any[]) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -65,7 +96,7 @@ app.get('/api/appointments', (req, res) => {
 });
 
 // Create new appointment
-app.post('/api/appointments', (req, res) => {
+app.post('/api/appointments', (req: Request<{}, any, CreateAppointmentRequest>, res: Response) => {
   const { stylist, service, date, time, email } = req.body;
   
   if (!stylist || !service || !date || !time || !email) {
@@ -76,13 +107,13 @@ app.post('/api/appointments', (req, res) => {
   const sql = `INSERT INTO appointments (stylist, service, date, time, email) 
                VALUES (?, ?, ?, ?, ?)`;
   
-  db.run(sql, [stylist, service, date, time, email], function(err) {
+  db.run(sql, [stylist, service, date, time, email], function(this: sqlite3.RunResult, err: Error | null) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
     
-    const newAppointment = {
+    const newAppointment: Partial<Appointment> = {
       id: this.lastID,
       stylist,
       service,
@@ -104,13 +135,13 @@ app.post('/api/appointments', (req, res) => {
 });
 
 // Update appointment status
-app.put('/api/appointments/:id', (req, res) => {
+app.put('/api/appointments/:id', (req: Request<{ id: string }, any, UpdateAppointmentRequest>, res: Response) => {
   const { id } = req.params;
   const { status } = req.body;
   
   const sql = `UPDATE appointments SET status = ? WHERE id = ?`;
   
-  db.run(sql, [status, id], function(err) {
+  db.run(sql, [status, id], function(this: sqlite3.RunResult, err: Error | null) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -122,19 +153,19 @@ app.put('/api/appointments/:id', (req, res) => {
     }
     
     // Emit to admin room for real-time updates
-    io.to('admin').emit('appointment_updated', { id, status });
+    io.to('admin').emit('appointment_updated', { id: parseInt(id), status });
     
     res.json({ success: true, message: 'Appointment updated successfully' });
   });
 });
 
 // Delete appointment
-app.delete('/api/appointments/:id', (req, res) => {
+app.delete('/api/appointments/:id', (req: Request<{ id: string }>, res: Response) => {
   const { id } = req.params;
   
   const sql = `DELETE FROM appointments WHERE id = ?`;
   
-  db.run(sql, id, function(err) {
+  db.run(sql, id, function(this: sqlite3.RunResult, err: Error | null) {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -146,14 +177,14 @@ app.delete('/api/appointments/:id', (req, res) => {
     }
     
     // Emit to admin room for real-time updates
-    io.to('admin').emit('appointment_deleted', { id });
+    io.to('admin').emit('appointment_deleted', { id: parseInt(id) });
     
     res.json({ success: true, message: 'Appointment deleted successfully' });
   });
 });
 
 // Get appointment statistics
-app.get('/api/stats', (req, res) => {
+app.get('/api/stats', (req: Request, res: Response) => {
   const queries = {
     total: 'SELECT COUNT(*) as count FROM appointments',
     pending: 'SELECT COUNT(*) as count FROM appointments WHERE status = "pending"',
@@ -161,13 +192,13 @@ app.get('/api/stats', (req, res) => {
     completed: 'SELECT COUNT(*) as count FROM appointments WHERE status = "completed"'
   };
   
-  const stats = {};
+  const stats: Record<string, number> = {};
   let completed = 0;
   const total = Object.keys(queries).length;
   
   Object.entries(queries).forEach(([key, query]) => {
-    db.get(query, (err, row) => {
-      if (!err) {
+    db.get(query, (err: Error | null, row: any) => {
+      if (!err && row) {
         stats[key] = row.count;
       }
       completed++;
@@ -187,7 +218,7 @@ server.listen(PORT, () => {
 
 // Graceful shutdown
 process.on('SIGINT', () => {
-  db.close((err) => {
+  db.close((err: Error | null) => {
     if (err) {
       console.error(err.message);
     }
